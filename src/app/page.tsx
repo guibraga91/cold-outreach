@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
   Zap,
@@ -11,6 +14,7 @@ import {
   Star,
   Shield,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,6 +92,7 @@ const testimonials = [
 
 const pricingPlans = [
   {
+    id: "starter",
     name: "Starter",
     price: 99,
     prospects: "500",
@@ -102,7 +107,8 @@ const pricingPlans = [
     ],
   },
   {
-    name: "Growth",
+    id: "pro",
+    name: "Pro",
     price: 199,
     prospects: "2,000",
     description: "For growing sales teams that need volume and precision",
@@ -119,7 +125,8 @@ const pricingPlans = [
     ],
   },
   {
-    name: "Scale",
+    id: "enterprise",
+    name: "Enterprise",
     price: 399,
     prospects: "10,000",
     description: "For high-volume outbound teams and agencies",
@@ -138,6 +145,29 @@ const pricingPlans = [
 ];
 
 export default function Home() {
+  const [loading, setLoading] = useState<string | null>(null);
+
+  async function handleCheckout(planId: string) {
+    setLoading(planId);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planId }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Something went wrong");
+        setLoading(null);
+      }
+    } catch {
+      alert("Failed to start checkout. Please try again.");
+      setLoading(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -351,18 +381,25 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/generate" className="block mt-6">
-                    <Button
-                      className={`w-full ${
-                        plan.popular
-                          ? "bg-rose-500 hover:bg-rose-600 text-white"
-                          : ""
-                      }`}
-                      variant={plan.popular ? "default" : "outline"}
-                    >
-                      Get Started
-                    </Button>
-                  </Link>
+                  <Button
+                    className={`w-full mt-6 ${
+                      plan.popular
+                        ? "bg-rose-500 hover:bg-rose-600 text-white"
+                        : ""
+                    }`}
+                    variant={plan.popular ? "default" : "outline"}
+                    disabled={loading !== null}
+                    onClick={() => handleCheckout(plan.id)}
+                  >
+                    {loading === plan.id ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Redirecting…
+                      </>
+                    ) : (
+                      "Get Started"
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             ))}
